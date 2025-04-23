@@ -25,5 +25,5 @@ def conjugate_gradient(A, b, x0, max_iter=200, tol=0.005):
         
         c += 1
         
-        return x
+    return x
 

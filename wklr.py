@@ -1,20 +1,23 @@
 import numpy as np
 from scipy.spatial.distance import cdist
 from conjugate_gradient import conjugate_gradient
+from sklearn.metrics.pairwise import rbf_kernel
 
 class WeightedKernelLogisticRegression:
-    def __init__(self, sigma=1.0, lambda_=0.1, tau=0.5, max_iter=30, epsilon=2.5):
+    def __init__(self, sigma, lambda_, tau, max_iter=30, epsilon=2.5):
         self.sigma = sigma
         self.lambda_ = lambda_
         self.tau = tau
         self.max_iter = max_iter
         self.epsilon = epsilon
-        self.alpha_tilde = None
-        self.X_train = None
+        # self.alpha_tilde = None
+        # self.X_train = None
+        # self.y_train = y_train
+        # self.X_test = X_test
 
-    def _rbf_kernel(self, X1, X2):
-        sq_dists = cdist(X1, X2, 'sqeuclidean')
-        return np.exp(-sq_dists / (2 * self.sigma ** 2))
+    # def _rbf_kernel(self, X1, X2):
+    #     sq_dists = cdist(X1, X2, 'sqeuclidean')
+    #     return np.exp(-sq_dists / (2 * self.sigma ** 2))
 
     def _sigmoid(self, x):
         return 1 / (1 + np.exp(-x))
@@ -60,8 +63,8 @@ class WeightedKernelLogisticRegression:
             b_alpha = K.T @ D @ z
             b_bias = K.T @ D @ xi
 
-            alpha_new, _ = conjugate_gradient(A, b_alpha, x0=alpha)
-            bias_alpha, _ = conjugate_gradient(A, b_bias, x0=np.zeros_like(alpha))
+            alpha_new = conjugate_gradient(A, b_alpha, x0=alpha)
+            bias_alpha = conjugate_gradient(A, b_bias, x0=np.zeros_like(alpha))
 
             dev_curr = self._deviance(alpha_new, y, K, w)
             devs.append(dev_curr)
@@ -78,14 +81,14 @@ class WeightedKernelLogisticRegression:
 
     def fit(self, X_train, y_train):
         self.X_train = X_train
-        K_train = self._rbf_kernel(X_train, X_train)
+        K_train = rbf_kernel(X_train, X_train)
         w0, w1 = self._calculate_weights(y_train)
         _, _, self.alpha_tilde = self._train_WKLR(K_train, y_train, w0, w1)
 
     def predict_proba(self, X_test):
         if self.alpha_tilde is None:
             raise RuntimeError("Model not trained yet. Call fit() first.")
-        K_test = self._rbf_kernel(X_test, self.X_train)
+        K_test = rbf_kernel(X_test, self.X_train)
         return self._sigmoid(K_test @ self.alpha_tilde)
 
     def predict(self, X_test, threshold=0.5):
